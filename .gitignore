@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# Virtual environment
+venv/
+.env
+*.env
+
+# FastAPI dependencies
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Logs & local runtime files
+logs/
+*.log
+*.out
+*.err
+nohup.out
+
+# Database files
+*.sqlite3
+*.db
+*.pdb
+
+# VSCode & PyCharm IDE settings
+.vscode/
+.idea/
+
+# Cache & system files
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.envrc
