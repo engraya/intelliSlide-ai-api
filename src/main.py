@@ -121,6 +121,11 @@ def create_pptx(topic: str, slides_data, filename="presentation.pptx"):
 
     prs.save(filename)
     return filename
+
+@app.get("/")
+async def welcome():
+    return {"message": "Welcome to IntelliSlide-AI! Use /generate_ppt to create a PowerPoint presentation."}
+
 @app.post("/generate_ppt")
 async def generate_ppt(request: PPTRequest, background_tasks: BackgroundTasks):
     slides_data = generate_slide_content(request.topic, request.num_slides, request.language)
