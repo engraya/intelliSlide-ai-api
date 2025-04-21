@@ -8,10 +8,11 @@ from pptx.dml.color import RGBColor  # Import for color styling
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai  # Correct import
-from pptx.util import Pt  # Import for font size control
 from pptx.enum.text import PP_ALIGN  # Import for text alignment
 from pptx.dml.color import RGBColor  # Import for color styling
 from pptx.util import Inches
+from pptx.util import Inches, Pt
+
 
 # Load environment variables
 load_dotenv()
@@ -63,64 +64,50 @@ def generate_slide_content(topic: str, num_slides: int, language: str):
         return [slide.split("\n") for slide in slides]  # Split title & bullets
     return []
 
-# Create PowerPoint file with Font Styling and Proper Fitting
-def create_pptx(topic: str, slides_data, filename="presentation.pptx"):
+def create_pptx(topic: str, slides_data, layout_preference: str = "default", filename="presentation.pptx"):
     prs = Presentation()
+    
+    # Define colors (adjust as needed for consistency)
+    title_color = RGBColor(255, 255, 255)  # White
+    content_color = RGBColor(50, 50, 50)  # Dark Gray
+    bg_color = RGBColor(0, 51, 102)  # Dark Blue for contrast
 
-    # Title Slide
-    slide_layout = prs.slide_layouts[0]  
-    slide = prs.slides.add_slide(slide_layout)
-    title = slide.shapes.title
-    subtitle = slide.placeholders[1]
-    title.text = topic
-    subtitle.text = "AI-Generated Presentation"
-
-    # Apply styling to title slide
-    title_text_frame = title.text_frame
-    title_text_frame.paragraphs[0].font.size = Pt(44)  # Larger Font
-    title_text_frame.paragraphs[0].font.color.rgb = RGBColor(34, 139, 34)  # Green
-    title_text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER  # Center alignment
-
-    # Content Slides
-    for slide_content in slides_data:
-        if len(slide_content) < 2:
-            continue
-        title_text = slide_content[0]
-        bullet_points = slide_content[1:]
-
-        slide_layout = prs.slide_layouts[5]  # Use a layout with more space
+    for slide_info in slides_data:
+        slide_layout = prs.slide_layouts[5]  # Title Only Layout for consistency
         slide = prs.slides.add_slide(slide_layout)
-        
-        # Manually position title to leave more space for content
+
+        # Adjusting Title Field
         title = slide.shapes.title
-        title.text = title_text
-        title.left = Inches(0.5)
-        title.top = Inches(0.3)  # Move title slightly up
-        title.width = Inches(9)
-        title.height = Inches(1)
+        title.text = slide_info["title"][:50]  # Ensuring title fits the slide space
+        title.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+        title.text_frame.paragraphs[0].font.bold = True
+        title.text_frame.paragraphs[0].font.size = Pt(36)
+        title.text_frame.paragraphs[0].font.color.rgb = title_color
 
-        # Apply styling to slide title
-        title_text_frame = title.text_frame
-        title_text_frame.paragraphs[0].font.size = Pt(32)  # Slightly smaller than before
-        title_text_frame.paragraphs[0].font.color.rgb = RGBColor(34, 139, 34)  # Green
-        title_text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER  # Center alignment
+        # Background Color (if required)
+        slide.background.fill.solid()
+        slide.background.fill.fore_color.rgb = bg_color
 
-        # Add a textbox manually for content with extra spacing
-        content_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.8), Inches(9), Inches(5))  # Lower position
-        content_text_frame = content_box.text_frame
-        content_text_frame.word_wrap = True
+        # Adding Content Box
+        content_box = slide.shapes.add_textbox(Inches(1), Inches(1.8), Inches(8.5), Inches(4))
+        text_frame = content_box.text_frame
+        text_frame.word_wrap = True
 
-        # Apply styling to content and ensure it fits properly
-        for bullet in bullet_points:
-            p = content_text_frame.add_paragraph()
-            p.text = bullet.strip("- ")  # Clean up bullet points
-            p.font.size = Pt(24)  # Readable size
-            p.font.color.rgb = RGBColor(128, 128, 128)  # Gray
-            p.space_after = Pt(8)  # Add spacing between bullet points
-            p.alignment = PP_ALIGN.LEFT  # Align left
-
+        for idx, point in enumerate(slide_info["content"]):
+            p = text_frame.add_paragraph()
+            p.text = f"• {point}"
+            p.font.size = Pt(24 if len(slide_info["content"]) <= 5 else 18)  # Adjust font size based on content
+            p.font.color.rgb = content_color
+            p.space_after = Pt(10)
+            if idx == 0:
+                p.font.bold = True  # First bullet point bold for emphasis
+        
+        # Adding Image Placeholder (if available)
+        if "image_path" in slide_info and slide_info["image_path"]:
+            img_path = slide_info["image_path"]
+            slide.shapes.add_picture(img_path, Inches(1), Inches(4.5), width=Inches(8))  # Adjusted to fit neatly
+        
     prs.save(filename)
-    return filename
 
 @app.get("/")
 async def welcome():
